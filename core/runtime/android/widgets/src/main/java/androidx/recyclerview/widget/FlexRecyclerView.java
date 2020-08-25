@@ -6,6 +6,10 @@
 package androidx.recyclerview.widget;
 
 import android.content.Context;
+
+import androidx.annotation.Nullable;
+import androidx.swiperefreshlayout.widget.HapRefreshLayout;
+
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,9 +31,10 @@ import org.hapjs.component.view.gesture.IGesture;
 import org.hapjs.component.view.keyevent.KeyEventDelegate;
 import org.hapjs.widgets.view.list.FlexLayoutManager;
 import org.hapjs.widgets.view.utils.ScrollableViewUtil;
+import org.hapjs.widgets.view.list.RecyclerViewAdapter;
 
 public class FlexRecyclerView extends RecyclerView
-        implements ComponentHost, NestedScrollingView, GestureHost {
+        implements ComponentHost, NestedScrollingView, GestureHost, RecyclerViewAdapter {
 
     private final Map<Integer, Integer> mChildrenHeightMap = new HashMap<>();
     SwipeDelegate mCurrentSwipeDelegate = null;
@@ -61,6 +66,7 @@ public class FlexRecyclerView extends RecyclerView
         mComponent = component;
     }
 
+    @Override
     public View getMoveableView() {
         return mMoveableView;
     }
@@ -220,6 +226,12 @@ public class FlexRecyclerView extends RecyclerView
         super.absorbGlows(velocityX, velocityX);
     }
 
+    @Override
+    public RecyclerView getActualRecyclerView() {
+        return this;
+    }
+
+    @Override
     public void setScrollPage(boolean scrollPage) {
         if (mMoveableView == null) {
             return;
@@ -273,10 +285,12 @@ public class FlexRecyclerView extends RecyclerView
         }
     }
 
+    @Override
     public void resumeRequestLayout() {
         stopInterceptRequestLayout(false);
     }
 
+    @Override
     public void setDirty(boolean dirty) {
         mDirty = dirty;
     }

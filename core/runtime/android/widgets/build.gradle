@@ -17,7 +17,10 @@ dependencies {
     api "com.google.android.exoplayer:exoplayer-dash:${rootProject.exoplayerVersion}"
     api "com.google.android.exoplayer:exoplayer-hls:${rootProject.exoplayerVersion}"
 
+    tvApi "androidx.leanback:leanback:1.0.0"
+
     androidTestImplementation project(':runtime')
+
 }
 
 android {

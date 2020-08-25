@@ -11,9 +11,10 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.FlexRecyclerView;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.HapStaggeredGridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.facebook.yoga.YogaConstants;
 import com.facebook.yoga.YogaNode;
 import org.hapjs.component.utils.YogaUtil;
@@ -28,7 +29,7 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
     private int mIndex = Integer.MAX_VALUE;
     private int mHeight;
 
-    private FlexRecyclerView mFlexRecyclerView;
+    private RecyclerViewAdapter mFlexRecyclerView;
 
     private RecyclerView.Recycler mRecycler;
     private ViewGroup mParent;
@@ -49,7 +50,7 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
             RecyclerView.Recycler recycler, RecyclerView.State state, int widthSpec,
             int heightSpec) {
         mRecycler = recycler;
-        YogaNode node = YogaUtil.getYogaNode(mFlexRecyclerView);
+        YogaNode node = YogaUtil.getYogaNode(mFlexRecyclerView.getActualRecyclerView());
 
         int maxHeight = 0;
         if (mScrollPage) {
@@ -211,7 +212,7 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
             return;
         }
         if (mParent == null) {
-            mParent = (ViewGroup) mFlexRecyclerView.getParent();
+            mParent = (ViewGroup) mFlexRecyclerView.getActualRecyclerView().getParent();
         }
         if (mParent == null) {
             return;
@@ -234,7 +235,7 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
         } else {
             if (mParent instanceof YogaLayout) {
                 YogaLayout yogaParent = (YogaLayout) mParent;
-                YogaNode recyclerNode = yogaParent.getYogaNodeForView(mFlexRecyclerView);
+                YogaNode recyclerNode = yogaParent.getYogaNodeForView(mFlexRecyclerView.getActualRecyclerView());
                 recyclerNode.setWidth(YogaConstants.UNDEFINED);
                 recyclerNode.setHeight(YogaConstants.UNDEFINED);
             }
@@ -242,10 +243,10 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
     }
 
     private void setYogaHeight(int height) {
-        mParent = (ViewGroup) mFlexRecyclerView.getParent();
+        mParent = (ViewGroup) mFlexRecyclerView.getActualRecyclerView().getParent();
         if (mParent instanceof YogaLayout) {
             YogaLayout parentView = (YogaLayout) mParent;
-            YogaNode recyclerNode = parentView.getYogaNodeForView(mFlexRecyclerView);
+            YogaNode recyclerNode = parentView.getYogaNodeForView(mFlexRecyclerView.getActualRecyclerView());
             recyclerNode.setHeight(height);
         }
     }
@@ -273,13 +274,13 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
     }
 
     @Override
-    public FlexRecyclerView getFlexRecyclerView() {
-        return mFlexRecyclerView;
+    public void setFlexRecyclerView(RecyclerViewAdapter flexRecyclerView) {
+        mFlexRecyclerView = flexRecyclerView;
     }
 
     @Override
-    public void setFlexRecyclerView(FlexRecyclerView flexRecyclerView) {
-        mFlexRecyclerView = flexRecyclerView;
+    public RecyclerViewAdapter getFlexRecyclerView() {
+        return mFlexRecyclerView;
     }
 
     @Override
@@ -419,6 +420,11 @@ public class FlexStaggeredGridLayoutManager extends HapStaggeredGridLayoutManage
     @Override
     public int getFlexChildPosition(View view) {
         return getPosition(view);
+    }
+
+    @Override
+    public void setSpanSizeLookup(GridLayoutManager.SpanSizeLookup spanSizeLookup) {
+        // nothing to do.
     }
 
     @Override

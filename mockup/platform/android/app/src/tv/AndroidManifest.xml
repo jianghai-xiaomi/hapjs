@@ -7,8 +7,8 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="org.hapjs.mockup">
-
+    package="org.hapjs.mockup"
+    tools:ignore="ImpliedTouchscreenHardware,MissingLeanbackLauncher,MissingLeanbackSupport">
     <application android:banner="@mipmap/ic_launcher">
         <activity
             android:name=".activity.MainActivity"

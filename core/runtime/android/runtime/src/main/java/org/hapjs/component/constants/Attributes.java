@@ -478,6 +478,7 @@ public class Attributes {
 
         String SCROLL_PAGE = "scrollpage";
         String COLUMNS = "columns";
+        String FOCUS_BEHAVIOR = "focusbehavior";
 
         String COLUMN_SPAN = "columnSpan";
 
@@ -570,6 +571,7 @@ public class Attributes {
         String SCROLL_TOP = "scrolltop";
         String SCROLL_END = "scrollend";
         String SCROLL_TOUCH_UP = "scrolltouchup";
+        String SELECTED = "selected";
 
         // refresh
         String REFRESH = "refresh";
@@ -690,5 +692,10 @@ public class Attributes {
     public interface OverflowType {
         String VISIBLE = "visible";
         String HIDDEN = "hidden";
+    }
+
+    public interface FocusBehavior {
+        String ALIGNED = "aligned";
+        String EDGED = "edged";
     }
 }
