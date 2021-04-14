@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, the hapjs-platform Project Contributors
+ * Copyright (c) 2021-2022, the hapjs-platform Project Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -1312,17 +1312,12 @@ public class RootView extends FrameLayout
         VDocument oldDocument = null;
         if (mDocument != null) {
             oldDocument = mDocument;
-            JSONObject oldPageAnimateSettingObj = getPageAnimationJsonFromParams(oldPage);
-            int animType =
-                    newIndex >= oldIndex
-                            ? Attributes.getPageOpenExitAnimation(
-                            oldPageAnimateSettingObj, DocAnimator.TYPE_PAGE_OPEN_EXIT)
-                            : Attributes.getPageCloseExitAnimation(
-                            oldPageAnimateSettingObj, DocAnimator.TYPE_PAGE_CLOSE_EXIT);
-            mDocument.detachChildren(
-                    animType,
-                    new InnerPageExitListener(mDocument, oldPage, newIndex > oldIndex),
-                    newIndex > oldIndex);
+            int animType = newIndex >= oldIndex
+                    ? oldPage.getPageAnimation(Attributes.PageAnimation.ACTION_OPEN_EXIT, DocAnimator.TYPE_PAGE_OPEN_EXIT)
+                    : oldPage.getPageAnimation(Attributes.PageAnimation.ACTION_CLOSE_EXIT, DocAnimator.TYPE_PAGE_CLOSE_EXIT);
+            boolean isOpen = newIndex > oldIndex;
+            mDocument.detachChildren(animType,
+                    new InnerPageExitListener(mDocument, oldPage, isOpen), isOpen);
             applicationContext.dispatchPageStop(oldPage);
 
             if (newIndex <= oldIndex) { // 返回操作
@@ -1338,11 +1333,10 @@ public class RootView extends FrameLayout
                     new HybridRequest.Builder().pkg(mPackage).uri(routableInfo.getPath()).build();
             mAndroidViewClient.onPageStarted(RootView.this, request.getUri());
         }
-        JSONObject currPageAnimateSettingObj = getPageAnimationJsonFromParams(currPage);
         if (newIndex >= oldIndex) {
-            forward(newIndex, currPage, currPageAnimateSettingObj);
+            forward(newIndex, currPage);
         } else {
-            backward(currPage, currPageAnimateSettingObj);
+            backward(currPage);
         }
         DocComponent oldComponent = oldDocument == null ? null : oldDocument.getComponent();
         DocComponent newComponent = mDocument.getComponent();
@@ -1354,7 +1348,7 @@ public class RootView extends FrameLayout
         currPage.setShouldRefresh(false);
     }
 
-    private void backward(Page currPage, JSONObject currPageAnimateSettingObj) {
+    private void backward(Page currPage) {
         boolean refresh = currPage.shouldRefresh();
         VDocument cacheDoc = currPage.getCacheDoc();
         boolean hasWeb = cacheDoc != null && cacheDoc.hasWebComponent();
@@ -1366,10 +1360,8 @@ public class RootView extends FrameLayout
             if (currPage.hasRenderActions()) {
                 applyActions();
             }
-            mDocument.attachChildren(
-                    false,
-                    Attributes.getPageCloseEnterAnimation(
-                            currPageAnimateSettingObj, DocAnimator.TYPE_PAGE_CLOSE_ENTER),
+            mDocument.attachChildren(false,
+                    currPage.getPageAnimation(Attributes.PageAnimation.ACTION_CLOSE_ENTER, DocAnimator.TYPE_PAGE_CLOSE_ENTER),
                     mPageEnterListener);
             mJsThread.postChangeVisiblePage(currPage, true);
             if (refresh) {
@@ -1380,25 +1372,20 @@ public class RootView extends FrameLayout
             RuntimeLogManager.getDefault()
                     .logPageRecreateRenderStart(mAppInfo.getPackage(), currPage.getName());
             mDocument = new VDocument(createDocComponent(currPage.pageId));
-            mDocument.attachChildren(
-                    false,
-                    Attributes.getPageCloseEnterAnimation(
-                            currPageAnimateSettingObj, DocAnimator.TYPE_PAGE_CLOSE_ENTER),
+            mDocument.attachChildren(false,
+                    currPage.getPageAnimation(Attributes.PageAnimation.ACTION_CLOSE_ENTER, DocAnimator.TYPE_PAGE_CLOSE_ENTER),
                     mPageEnterListener);
             currPage.setDisplayInfo(mDocument);
         }
     }
     /* end implement PageManager.PageChangedListener */
 
-    private void forward(int newIndex, Page currPage, JSONObject currPageAnimateSettingObj) {
+    private void forward(int newIndex, Page currPage) {
         if (currPage.getCacheDoc() != null) {
             mDocument = currPage.getCacheDoc();
-            mDocument.attachChildren(
-                    true,
-                    newIndex == 0
-                            ? 0
-                            : Attributes.getPageOpenEnterAnimation(
-                            currPageAnimateSettingObj, DocAnimator.TYPE_PAGE_OPEN_ENTER),
+            mDocument.attachChildren(true, newIndex == 0
+                            ? DocAnimator.TYPE_UNDEFINED
+                            : currPage.getPageAnimation(Attributes.PageAnimation.ACTION_OPEN_ENTER, DocAnimator.TYPE_PAGE_OPEN_ENTER),
                     mPageEnterListener);
             mJsThread.postChangeVisiblePage(currPage, true);
         } else {
@@ -1406,12 +1393,9 @@ public class RootView extends FrameLayout
             RuntimeLogManager.getDefault()
                     .logPageCreateRenderStart(mAppInfo.getPackage(), currPage.getName());
             mDocument = new VDocument(createDocComponent(currPage.pageId));
-            mDocument.attachChildren(
-                    true,
-                    newIndex == 0
-                            ? 0
-                            : Attributes.getPageOpenEnterAnimation(
-                            currPageAnimateSettingObj, DocAnimator.TYPE_PAGE_OPEN_ENTER),
+            mDocument.attachChildren(true, newIndex == 0
+                            ? DocAnimator.TYPE_UNDEFINED
+                            : currPage.getPageAnimation(Attributes.PageAnimation.ACTION_OPEN_ENTER, DocAnimator.TYPE_PAGE_OPEN_ENTER),
                     mPageEnterListener);
             currPage.setCacheDoc(mDocument);
             currPage.setDisplayInfo(mDocument);
@@ -1690,22 +1674,6 @@ public class RootView extends FrameLayout
 
     protected boolean onRenderProgress() {
         return false;
-    }
-
-    private JSONObject getPageAnimationJsonFromParams(Page page) {
-        JSONObject pageAnimateSettingObj = null;
-        if (page != null && page.params != null && page.params.size() > 0) {
-            Object obj = page.params.get(HybridRequest.PARAM_PAGE_ANIMATION);
-            if (obj instanceof String) {
-                String animationStr = obj.toString().trim();
-                try {
-                    pageAnimateSettingObj = new JSONObject(animationStr);
-                } catch (JSONException e) {
-                    Log.e(TAG, "onPageChangedInMainThread: ", e);
-                }
-            }
-        }
-        return pageAnimateSettingObj;
     }
 
     protected void onPageInitialized(Page page) {
