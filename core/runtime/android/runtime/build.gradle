@@ -80,15 +80,15 @@ dependencies {
     implementation project(":debug-log")
     api 'com.google.zxing:core:3.1.0'
 
-    def jsenvArtifactId = 'jsenv'
-    def jsenvVersionCode = JSENV_VERSION
-    if ('true' == project.properties['noV8Symbols']) {
-        jsenvArtifactId += '-no-v8symbols'
-    }
-    def jsenv = jsenvArtifactId + "-" + jsenvVersionCode + ".aar"
-
-    api fileTree(dir: 'jsenv-libs', include: [jsenv])
-    // api fileTree(include: ['*.aar'], dir: '/yourproject/build/outputs/aar')
+//    def jsenvArtifactId = 'jsenv'
+//    def jsenvVersionCode = JSENV_VERSION
+//    if ('true' == project.properties['noV8Symbols']) {
+//        jsenvArtifactId += '-no-v8symbols'
+//    }
+//    def jsenv = 'org.hapjs:' + jsenvArtifactId + ':' + jsenvVersionCode
+//
+//    api jsenv
+    api fileTree(include: ['*.aar'], dir: '/libs')
     implementation "androidx.recyclerview:recyclerview:${rootProject.recyclerviewVersion}"
     implementation "androidx.constraintlayout:constraintlayout:${rootProject.androidXconstraintlayoutVersion}"
     implementation "com.google.android.material:material:${rootProject.androidXVersion}"
