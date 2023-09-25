@@ -21,13 +21,17 @@ import org.hapjs.common.executors.Executors;
 public class JsBridgeTimer extends V8Object {
     private JsContext mJsContext;
     private Handler mJsThreadHandler;
+    private IJavaNative mNative;
     private Map<Integer, CallbackData> mCallbackDatas;
     private SparseArray<SparseArray<CallbackType>> mCallbackMap;
+    private boolean mFrameCallbackRequested;
 
-    public JsBridgeTimer(JsContext jsContext, Handler jsThreadHandler) {
+    public JsBridgeTimer(JsContext jsContext, Handler jsThreadHandler,
+                         IJavaNative javaNative) {
         super(jsContext.getV8());
         mJsContext = jsContext;
         mJsThreadHandler = jsThreadHandler;
+        mNative = javaNative;
         mCallbackDatas = new ConcurrentHashMap<>();
         mCallbackMap = new SparseArray<>();
     }
@@ -39,10 +43,11 @@ public class JsBridgeTimer extends V8Object {
                             @Override
                             public void run() {
                                 CallbackData callbackData = new CallbackData(id, false, 0);
-                                Choreographer choreographer = Choreographer.getInstance();
-                                choreographer.postFrameCallback(callbackData);
                                 mCallbackDatas.put(id, callbackData);
                                 addCallback(pageId, id, CallbackType.Animation);
+                                if (!mFrameCallbackRequested) {
+                                    mJsThreadHandler.post(() -> mNative.requestAnimationFrameNative());
+                                }
                             }
                         });
     }
@@ -57,12 +62,35 @@ public class JsBridgeTimer extends V8Object {
                                 if (callbackData == null) {
                                     return;
                                 }
-                                Choreographer choreographer = Choreographer.getInstance();
-                                choreographer.removeFrameCallback(callbackData);
                                 removeCallback(id);
                             }
                         });
     }
+
+    public void onFrameCallback(long frameTimeNanos) {
+        Executors.ui()
+                .execute(() -> {
+                    mFrameCallbackRequested = false;
+                    for (int i = 0; i < mCallbackMap.size(); ++i) {
+                        SparseArray<CallbackType> callbackIds = mCallbackMap.valueAt(i);
+                        if (callbackIds == null || callbackIds.size() == 0) {
+                            continue;
+                        }
+                        final int N = callbackIds.size();
+                        for (int index = 0; index < N; ++index) {
+                            int callbackId = callbackIds.keyAt(index);
+                            CallbackType type = callbackIds.valueAt(index);
+                            if (type == CallbackType.Animation) {
+                                CallbackData callbackData = mCallbackDatas.get(callbackId);
+                                if (callbackData != null) {
+                                    callbackData.doFrame(frameTimeNanos);
+                                }
+                            }
+                        }
+                    }
+                });
+    }
+
 
     public void setTimeoutNative(int pageId, int id, int time) {
         Executors.ui()
@@ -216,7 +244,7 @@ public class JsBridgeTimer extends V8Object {
                     v8.executeFunction("setIntervalCallback", arr);
                 }
             } catch (V8RuntimeException ex) {
-                mJsContext.getJsThread().processV8Exception(ex);
+                mNative.onV8Exception(ex.getStackTrace(), ex.getMessage());
             } finally {
                 JsUtils.release(arr);
             }
@@ -235,7 +263,7 @@ public class JsBridgeTimer extends V8Object {
                             try {
                                 v8.executeFunction("requestAnimationFrameCallback", arr);
                             } catch (V8RuntimeException ex) {
-                                mJsContext.getJsThread().processV8Exception(ex);
+                                mNative.onV8Exception(ex.getStackTrace(), ex.getMessage());
                             } finally {
                                 JsUtils.release(arr);
                             }

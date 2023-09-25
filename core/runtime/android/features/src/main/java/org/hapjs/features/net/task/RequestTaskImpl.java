@@ -325,11 +325,8 @@ public class RequestTaskImpl implements InstanceManager.IInstance {
                     result.put(RequestTask.RESULT_KEY_HEADER, parseHeaders(response));
                     if (response.body() != null) {
                         byte[] bytes = response.body().bytes();
-                        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
-                        byteBuffer.put(bytes);
-                        byteBuffer.rewind();
 
-                        result.put(RequestTask.RESULT_KEY_DATA, new TypedArrayProxy(V8Value.UNSIGNED_INT_8_ARRAY, byteBuffer));
+                        result.put(RequestTask.RESULT_KEY_DATA, new TypedArrayProxy(V8Value.UNSIGNED_INT_8_ARRAY, bytes));
                     } else {
                         Log.w(TAG, "response body is invalid");
                     }

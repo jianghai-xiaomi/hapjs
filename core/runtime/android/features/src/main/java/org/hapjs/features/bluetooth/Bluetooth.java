@@ -867,10 +867,7 @@ public class Bluetooth extends CallbackHybridFeature {
                                                     serviceUUID.toUpperCase());
                                             result.put(RESULT_CHARACTERISTIC_UUID,
                                                     characteristicUUID.toUpperCase());
-                                            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(data.length);
-                                            byteBuffer.put(data);
-                                            byteBuffer.rewind();
-                                            result.put(RESULT_VALUE, byteBuffer);
+                                            result.put(RESULT_VALUE, data);
                                             runCallbackContext(
                                                     EVENT_ON_CHARACTERISTIC_VALUE_CHANGE,
                                                     CODE_ON_CHARACTERISTIC_VALUE_CHANGE,
@@ -980,16 +977,10 @@ public class Bluetooth extends CallbackHybridFeature {
             JavaSerializeObject serviceData = new JavaSerializeObject();
             for (Pair<String, byte[]> d : mServiceData) {
                 byte[] bytes = d.second;
-                ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
-                byteBuffer.put(bytes);
-                byteBuffer.rewind();
-                serviceData.put(d.first, byteBuffer);
+                serviceData.put(d.first, bytes);
             }
             result.put(RESULT_SERVICE_DATA, serviceData);
-            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(mAdvertisData.length);
-            byteBuffer.put(mAdvertisData);
-            byteBuffer.rewind();
-            result.put(RESULT_ADVERTIS_DATA, byteBuffer);
+            result.put(RESULT_ADVERTIS_DATA, mAdvertisData);
             return result;
         }
 

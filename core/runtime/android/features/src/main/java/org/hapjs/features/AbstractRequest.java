@@ -440,10 +440,7 @@ public abstract class AbstractRequest extends CallbackHybridFeature {
                 }
             } else if (RESPONSE_TYPE_ARRAYBUFFER.equalsIgnoreCase(responseType)) {
                 byte[] bytes = response.body().bytes();
-                ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
-                byteBuffer.put(bytes);
-                byteBuffer.rewind();
-                result.put(RESULT_KEY_DATA, byteBuffer);
+                result.put(RESULT_KEY_DATA, bytes);
             } else if (RESPONSE_TYPE_FILE.equalsIgnoreCase(responseType)) {
                 result.put(RESULT_KEY_DATA, parseFile(request, response));
             } else {
