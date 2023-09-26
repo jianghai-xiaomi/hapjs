@@ -22,6 +22,7 @@ import org.hapjs.runtime.ProviderManager;
 import org.hapjs.runtime.Runtime;
 import org.hapjs.runtime.sandbox.ISandbox;
 import org.hapjs.runtime.sandbox.ILogProvider;
+import org.hapjs.runtime.sandbox.SandboxConfigs;
 
 public class SandboxProcessLauncher {
     private static final String TAG = "SandboxProcessLauncher";
@@ -79,6 +80,11 @@ public class SandboxProcessLauncher {
                 ISandbox iSandbox = ISandbox.Stub.asInterface(service);
                 mSandbox = iSandbox;
                 try {
+                    SandboxProvider sandboxProvider = ProviderManager.getDefault().getProvider(SandboxProvider.NAME);
+                    iSandbox.init(new SandboxConfigs.Builder()
+                            .setDebugLogEnabled(sandboxProvider != null && sandboxProvider.isDebugLogEnabled())
+                            .setProfilerEnabled(ProfilerHelper.profilerIsEnabled())
+                            .build());
                     iSandbox.setLogProvider(new SandboxLogProvider());
                     iSandbox.asBinder().linkToDeath(() -> {
                         Log.e(TAG, "sandbox process has died. kill app process as well.");

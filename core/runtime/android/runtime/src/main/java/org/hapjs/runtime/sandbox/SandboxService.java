@@ -14,6 +14,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import java.io.IOException;
+import java.util.Map;
 import org.hapjs.logging.LogProvider;
 import org.hapjs.render.jsruntime.SandboxJsThread;
 import org.hapjs.runtime.ProviderManager;
@@ -25,6 +26,11 @@ public class SandboxService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return new ISandbox.Stub() {
+            @Override
+            public void init(Map configs) {
+                SandboxConfigs.setConfigs(configs);
+            }
+
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public ParcelFileDescriptor[] createChannel(ParcelFileDescriptor[] readSides) throws RemoteException {

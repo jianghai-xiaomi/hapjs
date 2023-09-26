@@ -6,11 +6,14 @@ package org.hapjs.render.jsruntime;
 
 import android.os.Handler;
 import android.os.ParcelFileDescriptor;
+import org.hapjs.common.utils.ProcessUtils;
 import org.hapjs.render.action.RenderActionManager;
+import org.hapjs.runtime.Runtime;
 import org.hapjs.runtime.sandbox.AppChannelReceiver;
 import org.hapjs.runtime.sandbox.AppChannelSender;
 import org.hapjs.runtime.sandbox.SandboxChannelReceiver;
 import org.hapjs.runtime.sandbox.SandboxChannelSender;
+import org.hapjs.runtime.sandbox.SandboxConfigs;
 
 public class SandboxProviderImpl implements SandboxProvider {
     @Override
@@ -20,7 +23,7 @@ public class SandboxProviderImpl implements SandboxProvider {
 
     @Override
     public boolean isDebugLogEnabled() {
-        return false;
+        return ProcessUtils.isSandboxProcess(Runtime.getInstance().getContext()) && SandboxConfigs.isDebugLogEnabled();
     }
 
     @Override

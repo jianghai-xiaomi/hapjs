@@ -76,7 +76,7 @@ import static org.hapjs.render.RootView.MSG_APP_LOAD_END;
 
 public class AppJsThread extends JsThread {
 
-    private static final String TAG = "JsThread";
+    private static final String TAG = "AppJsThread";
 
     public static final String INFRASJS_SNAPSHOT_SO_NAME = "infrasjs_snapshot";
     public static final boolean HAS_INFRASJS_SNAPSHOT;

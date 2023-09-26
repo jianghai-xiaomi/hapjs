@@ -4,22 +4,29 @@
 package org.hapjs.runtime.sandbox;
 
 import android.os.Handler;
-import org.hapjs.common.executors.Executors;
-import org.hapjs.common.executors.Future;
+import android.os.Looper;
+import android.util.Log;
 import org.hapjs.logging.RuntimeLogManager;
+import org.hapjs.render.jsruntime.SandboxProvider;
+import org.hapjs.runtime.ProviderManager;
 
 public class SandboxLogHelper {
+    private static final String TAG = "SandboxLogHelper";
+
     private static final long SLOW_MESSAGE_THRESHOLD = 100;
-    private static final long HEART_BEAT_THRESHOLD = 1000;
+    private static final long HEART_BEAT_DELAY = 1000;
+    private static final long HEART_BEAT_TIMEOUT_THRESHOLD = 1000;
 
     public static class PositiveChannelStatHelper {
         private ChannelSender mChannel;
-        private Handler mHandler;
+        private Handler mSenderHandler;
+        private Handler mMainHandler;
         private boolean mHeartBeatWaiting;
 
         public PositiveChannelStatHelper(ChannelSender channel, Handler handler) {
             mChannel = channel;
-            mHandler = handler;
+            mSenderHandler = handler;
+            mMainHandler = new Handler(Looper.getMainLooper());
         }
 
         public void scheduleHeartBeat(String pkg) {
@@ -28,21 +35,27 @@ public class SandboxLogHelper {
             }
 
             mHeartBeatWaiting = true;
-            long start = System.currentTimeMillis();
-            Future future = Executors.scheduled().executeWithDelay(() -> {
-                RuntimeLogManager.getDefault().recordSandboxMessageSlow(pkg, SandboxIpcMethods.HEART_BEAT, 0,
-                        System.currentTimeMillis() - start);
-            }, HEART_BEAT_THRESHOLD);
+            mSenderHandler.postDelayed(() -> {
+                long start = System.currentTimeMillis();
+                Runnable recordSlowHeartbeat = () -> {
+                    Log.w(TAG, "heartbeat response too slow");
+                    RuntimeLogManager.getDefault().recordSandboxMessageSlow(pkg, SandboxIpcMethods.HEART_BEAT, 0,
+                            System.currentTimeMillis() - start);
+                };
+                mMainHandler.postDelayed(recordSlowHeartbeat, HEART_BEAT_TIMEOUT_THRESHOLD);
 
-            mHandler.post(() -> {
+                debugLog(TAG, "heartbeat starts");
                 mChannel.invokeSync(SandboxIpcMethods.HEART_BEAT, boolean.class);
+                debugLog(TAG, "heartbeat ends");
+
                 mHeartBeatWaiting = false;
-                future.cancel(false);
-                if (System.currentTimeMillis() - start > HEART_BEAT_THRESHOLD) {
+                mMainHandler.removeCallbacks(recordSlowHeartbeat);
+                if (System.currentTimeMillis() - start > HEART_BEAT_TIMEOUT_THRESHOLD) {
+                    Log.w(TAG, "heartbeat response two slow: " + (System.currentTimeMillis() - start));
                     RuntimeLogManager.getDefault().recordSandboxMessageSlow(pkg, SandboxIpcMethods.HEART_BEAT, 0,
                             System.currentTimeMillis() - start);
                 }
-            });
+            }, HEART_BEAT_DELAY);
         }
     }
 
@@ -51,6 +64,13 @@ public class SandboxLogHelper {
         long timeCost = now - startStamp;
         if (timeCost > SLOW_MESSAGE_THRESHOLD) {
             RuntimeLogManager.getDefault().recordSandboxMessageSlow(pkg, method, dataSize, timeCost);
+        }
+    }
+
+    private static void debugLog(String tag, String msg) {
+        SandboxProvider sandboxProvider = ProviderManager.getDefault().getProvider(SandboxProvider.NAME);
+        if (sandboxProvider != null && sandboxProvider.isDebugLogEnabled()) {
+            Log.d(tag, msg);
         }
     }
 }
