@@ -3,8 +3,11 @@
  */
 package org.hapjs.render.jsruntime;
 
+import androidx.annotation.Keep;
+
 import com.eclipsesource.v8.V8;
 
+@Keep
 public class V8InspectorNative {
     private static final String TAG = "V8InspectorNative";
 
@@ -26,21 +29,25 @@ public class V8InspectorNative {
     }
 
     //@callby native
+    @Keep
     public void sendResponse(int sessionId, int callId, String message) {
         mInspectorNativeCallback.inspectorResponse(sessionId, callId, message);
     }
 
     //@callby native
+    @Keep
     public void sendNotification(int sessionId, int callId, String message) {
         mInspectorNativeCallback.inspectorSendNotification(sessionId, callId, message);
     }
 
     //@callby native
+    @Keep
     public void runMessageLoopOnPause(int contextGroupId) {
         mInspectorNativeCallback.inspectorRunMessageLoopOnPause(contextGroupId);
     }
 
     //@callby native
+    @Keep
     public void quitMessageLoopOnPause() {
         mInspectorNativeCallback.inspectorQuitMessageLoopOnPause();
     }
