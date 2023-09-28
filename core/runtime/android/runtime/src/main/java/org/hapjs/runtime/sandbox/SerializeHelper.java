@@ -6,10 +6,15 @@ package org.hapjs.runtime.sandbox;
 
 import android.util.ArrayMap;
 import android.util.Log;
+
+import com.eclipsesource.v8.V8;
+import com.eclipsesource.v8.V8Object;
+import com.eclipsesource.v8.V8Value;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -18,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.hapjs.bridge.InstanceManager;
 import org.hapjs.bridge.Response;
 import org.hapjs.render.jsruntime.JsThread;
@@ -75,8 +81,21 @@ public class SerializeHelper {
         kryo.register(org.hapjs.common.json.JSONObject.class);
         kryo.register(org.hapjs.common.json.JSONArray.class);
 
+        V8Value undefined = V8.getUndefined();
+        kryo.register(undefined.getClass(), new FieldSerializer(kryo, undefined.getClass()) {
+            @Override
+            public void write(Kryo kryo, Output output, Object object) {
+                // 不序列化 Undefined 数据
+            }
+
+            @Override
+            public Object read(Kryo kryo, Input input, Class type) {
+                return V8.getUndefined();
+            }
+        });
+
         kryo.register(StackTraceElement.class, new FieldSerializer(kryo, StackTraceElement.class) {
-            public void write (Kryo kryo, Output output, Object object) {
+            public void write(Kryo kryo, Output output, Object object) {
                 StackTraceElement stack = (StackTraceElement) object;
                 output.writeString(stack.getClassName());
                 output.writeString(stack.getMethodName());
@@ -84,7 +103,7 @@ public class SerializeHelper {
                 output.writeInt(stack.getLineNumber());
             }
 
-            public Object read (Kryo kryo, Input input, Class type) {
+            public Object read(Kryo kryo, Input input, Class type) {
                 String className = input.readString();
                 String methodName = input.readString();
                 String fileName = input.readString();
@@ -95,13 +114,13 @@ public class SerializeHelper {
 
         Class clazz = ByteBuffer.wrap(new byte[1]).getClass();
         kryo.register(clazz, new FieldSerializer(kryo, clazz) {
-            public void write (Kryo kryo, Output output, Object object) {
+            public void write(Kryo kryo, Output output, Object object) {
                 byte[] bytes = ((ByteBuffer) object).array();
                 output.writeInt(bytes.length);
                 output.write(bytes);
             }
 
-            public Object read (Kryo kryo, Input input, Class type) {
+            public Object read(Kryo kryo, Input input, Class type) {
                 int len = input.readInt();
                 byte[] bytes = input.readBytes(len);
                 return ByteBuffer.wrap(bytes);
@@ -109,14 +128,14 @@ public class SerializeHelper {
         });
 
         kryo.register(TypedArrayProxy.class, new FieldSerializer(kryo, TypedArrayProxy.class) {
-            public void write (Kryo kryo, Output output, Object object) {
+            public void write(Kryo kryo, Output output, Object object) {
                 byte[] bytes = ((TypedArrayProxy) object).getBytes();
                 output.writeInt(bytes.length);
                 output.write(bytes);
                 output.writeInt(((TypedArrayProxy) object).getType());
             }
 
-            public Object read (Kryo kryo, Input input, Class type) {
+            public Object read(Kryo kryo, Input input, Class type) {
                 int len = input.readInt();
                 byte[] bytes = input.readBytes(len);
                 int dataType = input.readInt();
