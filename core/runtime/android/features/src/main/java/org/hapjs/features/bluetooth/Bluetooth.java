@@ -635,11 +635,7 @@ public class Bluetooth extends CallbackHybridFeature {
         String address = params.getString(PARAM_DEVICE_ID);
         String serviceUUID = params.getString(PARAM_SERVICE_UUID);
         String charaUUID = params.getString(PARAM_CHARACTERISTIC_UUID);
-        ArrayBuffer value = (ArrayBuffer) params.get(PARAM_VALUE);
-        // copy memory to heap
-        V8ArrayBuffer v8ArrayBuffer = value.getV8ArrayBuffer();
-        byte[] buffer = new byte[v8ArrayBuffer.remaining()];
-        v8ArrayBuffer.get(buffer);
+        byte[] buffer = (byte[]) params.get(PARAM_VALUE);
         BleManager.getInstance()
                 .writeCharacteristic(
                         address, serviceUUID, charaUUID, buffer, getOperationCallback(request));

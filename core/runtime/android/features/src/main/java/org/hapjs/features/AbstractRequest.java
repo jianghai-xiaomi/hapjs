@@ -255,16 +255,12 @@ public abstract class AbstractRequest extends CallbackHybridFeature {
             String textParams = joinParams((SerializeObject) objData);
             return RequestBody.create(
                     MediaType.parse(RequestHelper.CONTENT_TYPE_FORM_URLENCODED), textParams);
-        } else if (objData instanceof ArrayBuffer) {
+        } else if (objData instanceof byte[]) {
             if (TextUtils.isEmpty(contentType)) {
                 contentType = RequestHelper.CONTENT_TYPE_OCTET_STREAM;
             }
 
-            //copy memory to heap
-            V8ArrayBuffer v8ArrayBuffer = ((ArrayBuffer) objData).getV8ArrayBuffer();
-            byte[] buffer = new byte[v8ArrayBuffer.remaining()];
-            v8ArrayBuffer.get(buffer);
-            return RequestBody.create(MediaType.parse(contentType), buffer);
+            return RequestBody.create(MediaType.parse(contentType), (byte[]) objData);
         }
 
         contentType =

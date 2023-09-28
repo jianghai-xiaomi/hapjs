@@ -35,7 +35,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -253,17 +252,14 @@ public class RequestTaskImpl implements InstanceManager.IInstance {
             return RequestBody.create(
                     MediaType.parse(CONTENT_TYPE_FORM_URLENCODED),
                     textParams);
-        } else if (objData instanceof ByteBuffer) {
+        } else if (objData instanceof byte[]) {
             Log.d(TAG, "getSimplePost objData is ArrayBuffer, contentType=" + contentType);
             if (TextUtils.isEmpty(contentType)) {
                 contentType = CONTENT_TYPE_JSON;
             }
-            //copy memory to heap
-            ByteBuffer byteBuffer = (ByteBuffer) objData;
-            byte[] buffer = new byte[byteBuffer.remaining()];
-            byteBuffer.get(buffer);
+
             try {
-                return RequestBody.create(MediaType.parse(contentType), new JSONArray(buffer).toString());
+                return RequestBody.create(MediaType.parse(contentType), new JSONArray(objData).toString());
             } catch (JSONException e) {
                 throw new RuntimeException(e);
             }

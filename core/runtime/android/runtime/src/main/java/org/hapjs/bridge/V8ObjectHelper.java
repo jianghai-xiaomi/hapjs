@@ -96,10 +96,7 @@ public class V8ObjectHelper {
                 V8ArrayBuffer v8ArrayBuffer = (V8ArrayBuffer) value;
                 byte[] bytes = new byte[v8ArrayBuffer.remaining()];
                 v8ArrayBuffer.get(bytes);
-                ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
-                byteBuffer.put(bytes);
-                byteBuffer.rewind();
-                return byteBuffer;
+                return bytes;
             case V8Value.UNDEFINED:
                 return V8.getUndefined();
             default:
