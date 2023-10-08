@@ -349,7 +349,7 @@ public abstract class JsThread extends HandlerThread {
     }
 
     public void postRecreatePage(int pageId) {
-        mHandler.obtainMessage(H.MSG_RECREATE_PAGE, pageId).sendToTarget();
+        mHandler.obtainMessage(H.MSG_RECREATE_PAGE, new Object[]{pageId}).sendToTarget();
     }
 
     protected void recreatePage(Object msgObj) {
