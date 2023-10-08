@@ -793,7 +793,6 @@ public class AppJsThread extends JsThread {
     }
 
     public void processV8Exception(Exception ex) {
-        if (true) throw new RuntimeException(ex); // TODO
         if (isTerminateExecution(ex.getMessage())) {
             mIsTerminateExecution = false;
         } else {
