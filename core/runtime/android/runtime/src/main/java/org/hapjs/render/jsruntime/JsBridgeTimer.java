@@ -77,7 +77,7 @@ public class JsBridgeTimer extends V8Object {
                             continue;
                         }
                         final int N = callbackIds.size();
-                        for (int index = 0; index < N; ++index) {
+                        for (int index = N - 1; index >= 0; index--) {
                             int callbackId = callbackIds.keyAt(index);
                             CallbackType type = callbackIds.valueAt(index);
                             if (type == CallbackType.Animation) {

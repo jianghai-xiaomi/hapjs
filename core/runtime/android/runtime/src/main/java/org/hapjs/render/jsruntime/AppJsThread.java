@@ -191,7 +191,14 @@ public class AppJsThread extends JsThread {
     protected void onInit() {
         SandboxProvider provider = ProviderManager.getDefault().getProvider(SandboxProvider.NAME);
         mNative = provider.createNativeImpl(mRenderActionManager,
-                frameTimeNanos -> mEngine.onFrameCallback(frameTimeNanos));
+                frameTimeNanos -> {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mEngine.onFrameCallback(frameTimeNanos);
+                        }
+                    });
+                });
 
         if (provider.isSandboxEnabled()) {
             ParcelFileDescriptor[][] channelDescriptors = SandboxProcessLauncher.getInstance().getChannelDescriptor();
@@ -223,7 +230,7 @@ public class AppJsThread extends JsThread {
     }
 
     private void initInfras() {
-        executeVoidFunction(new Object[] {"initInfras", null});
+        executeVoidFunction(new Object[]{"initInfras", null});
     }
 
     public boolean isApplicationDebugEnabled() {
@@ -284,7 +291,7 @@ public class AppJsThread extends JsThread {
                     }
                 }
                 RuntimeLogManager.getDefault().logJsThreadTaskEnd(mContext.getPackageName(), RuntimeLogManager.KEY_INFRAS_JS_LOAD);
-                executeVoidScript(new Object[] {script, "infras.js", 0});
+                executeVoidScript(new Object[]{script, "infras.js", 0});
             }
             mApplicationState = STATE_RUNTIME_INITED;
         } catch (V8RuntimeException ex) {
@@ -341,15 +348,15 @@ public class AppJsThread extends JsThread {
     }
 
     public void postOnRequestApplication() {
-        Message.obtain(mHandler, H.MSG_ON_REQUEST_APPLICATION, new Object[] {mAppId}).sendToTarget();
+        Message.obtain(mHandler, H.MSG_ON_REQUEST_APPLICATION, new Object[]{mAppId}).sendToTarget();
     }
 
     public void postOnShowApplication() {
-        Message.obtain(mHandler, H.MSG_ON_SHOW_APPLICATION, new Object[] {mAppId}).sendToTarget();
+        Message.obtain(mHandler, H.MSG_ON_SHOW_APPLICATION, new Object[]{mAppId}).sendToTarget();
     }
 
     public void postOnHideApplication() {
-        Message.obtain(mHandler, H.MSG_ON_HIDE_APPLICATION, new Object[] {mAppId}).sendToTarget();
+        Message.obtain(mHandler, H.MSG_ON_HIDE_APPLICATION, new Object[]{mAppId}).sendToTarget();
     }
 
     public void postOnMenuButtonPress(Page page, HybridView.OnKeyUpListener onKeyUpIsConsumption) {
@@ -358,7 +365,7 @@ public class AppJsThread extends JsThread {
     }
 
     public void postPageNotFound(Page page) {
-        Message.obtain(mHandler, H.MSG_PAGE_NOT_FOUND, new Object[] {mAppId, page.getTargetPageUri(), page.getPageId()}).sendToTarget();
+        Message.obtain(mHandler, H.MSG_PAGE_NOT_FOUND, new Object[]{mAppId, page.getTargetPageUri(), page.getPageId()}).sendToTarget();
     }
 
     public void postBackPress(Page page) {
@@ -370,7 +377,7 @@ public class AppJsThread extends JsThread {
         Page page = (Page) msgObj;
         boolean consumed = false;
         if (page != null && page.getState() >= Page.STATE_CREATED) {
-            consumed = super.backPress(new Object[] {page.pageId});
+            consumed = super.backPress(new Object[]{page.pageId});
         }
         if (!consumed && null != mMainHandler) {
             mMainHandler.sendEmptyMessage(RootView.MSG_BACK_PRESS);
@@ -384,7 +391,7 @@ public class AppJsThread extends JsThread {
         HybridView.OnKeyUpListener onKeyUpIsConsumption = (HybridView.OnKeyUpListener) ((Object[]) msgObj)[1];
         boolean consumed = false;
         if (page != null && page.getState() >= Page.STATE_CREATED) {
-            consumed = super.menuButtonPressPage(new Object[] {page.pageId});
+            consumed = super.menuButtonPressPage(new Object[]{page.pageId});
             // TODO: onKeyUpIsConsumption.consume(false);?
         }
         onKeyUpIsConsumption.consume(consumed);
@@ -411,7 +418,7 @@ public class AppJsThread extends JsThread {
     }
 
     public void postMenuPress(Page page) {
-        mHandler.obtainMessage(H.MSG_MENU_PRESS, new Object[] {page}).sendToTarget();
+        mHandler.obtainMessage(H.MSG_MENU_PRESS, new Object[]{page}).sendToTarget();
     }
 
     @Override
@@ -419,7 +426,7 @@ public class AppJsThread extends JsThread {
         Page page = (Page) ((Object[]) msgObj)[0];
         boolean consumed = false;
         if (page != null && page.getState() >= Page.STATE_CREATED) {
-            consumed = super.onMenuPress(new Object[] {page.pageId});
+            consumed = super.onMenuPress(new Object[]{page.pageId});
         }
 
         if (!consumed) {
@@ -429,7 +436,7 @@ public class AppJsThread extends JsThread {
     }
 
     public void postOrientationChange(Page page, ScreenOrientation screenOrientation) {
-        mHandler.obtainMessage(H.MSG_ORIENTATION_CHANGE, new Object[] {page, screenOrientation}).sendToTarget();
+        mHandler.obtainMessage(H.MSG_ORIENTATION_CHANGE, new Object[]{page, screenOrientation}).sendToTarget();
     }
 
     @Override
@@ -437,7 +444,7 @@ public class AppJsThread extends JsThread {
         Page page = (Page) ((Object[]) msgObj)[0];
         ScreenOrientation screenOrientation = (ScreenOrientation) ((Object[]) msgObj)[1];
         if (page != null && page.getState() >= Page.STATE_CREATED) {
-            super.onOrientationChange(new Object[] {page.pageId, screenOrientation.getOrientation(), screenOrientation.getAngel()});
+            super.onOrientationChange(new Object[]{page.pageId, screenOrientation.getOrientation(), screenOrientation.getAngel()});
         }
     }
 
@@ -496,7 +503,7 @@ public class AppJsThread extends JsThread {
 
     public void postDestroyPage(Page page) {
         if (page.getState() > Page.STATE_NONE) {
-            mHandler.obtainMessage(H.MSG_DESTROY_PAGE, new Object[] {page.pageId}).sendToTarget();
+            mHandler.obtainMessage(H.MSG_DESTROY_PAGE, new Object[]{page.pageId}).sendToTarget();
             page.setState(Page.STATE_NONE);
         } else {
             Log.d(TAG, "skip page destroy: " + page.toString());
@@ -590,7 +597,7 @@ public class AppJsThread extends JsThread {
 
         preCreateSkeleton(page);
         preCreateBody(page.pageId);
-        super.createPage(new Object[] {mAppId, page.pageId, js, css, page.params, page.intent, page.meta});
+        super.createPage(new Object[]{mAppId, page.pageId, js, css, page.params, page.intent, page.meta});
         Message.obtain(mMainHandler, MSG_APP_LOAD_END).sendToTarget();
     }
 
@@ -703,7 +710,7 @@ public class AppJsThread extends JsThread {
     }
 
     private void postDestroyApplication() {
-        Message.obtain(mHandler, H.MSG_DESTROY_APPLICATION, new Object[] {mAppId}).sendToTarget();
+        Message.obtain(mHandler, H.MSG_DESTROY_APPLICATION, new Object[]{mAppId}).sendToTarget();
     }
 
     @Override
@@ -719,7 +726,7 @@ public class AppJsThread extends JsThread {
         post(new Runnable() {
             @Override
             public void run() {
-                fireEvent(new Object[] {pageId, datas, listener});
+                fireEvent(new Object[]{pageId, datas, listener});
             }
         });
     }
