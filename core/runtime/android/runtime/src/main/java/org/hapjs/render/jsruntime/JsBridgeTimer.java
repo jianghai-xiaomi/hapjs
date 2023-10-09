@@ -7,6 +7,7 @@ package org.hapjs.render.jsruntime;
 
 import android.os.Handler;
 import android.os.SystemClock;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.Choreographer;
 import androidx.annotation.UiThread;
@@ -19,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.hapjs.common.executors.Executors;
 
 public class JsBridgeTimer extends V8Object {
+    private static final String TAG = "JsBridgeTimer";
     private JsContext mJsContext;
     private Handler mJsThreadHandler;
     private IJavaNative mNative;
@@ -235,18 +237,22 @@ public class JsBridgeTimer extends V8Object {
             }
 
             V8 v8 = mJsContext.getV8();
-            V8Array arr = new V8Array(v8);
-            arr.push(id);
-            try {
-                if (!isRepeat) {
-                    v8.executeFunction("setTimeoutCallback", arr);
-                } else {
-                    v8.executeFunction("setIntervalCallback", arr);
+            if (v8 != null) {
+                V8Array arr = new V8Array(v8);
+                arr.push(id);
+                try {
+                    if (!isRepeat) {
+                        v8.executeFunction("setTimeoutCallback", arr);
+                    } else {
+                        v8.executeFunction("setIntervalCallback", arr);
+                    }
+                } catch (V8RuntimeException ex) {
+                    mNative.onV8Exception(ex.getStackTrace(), ex.getMessage());
+                } finally {
+                    JsUtils.release(arr);
                 }
-            } catch (V8RuntimeException ex) {
-                mNative.onV8Exception(ex.getStackTrace(), ex.getMessage());
-            } finally {
-                JsUtils.release(arr);
+            } else {
+                Log.w(TAG, "v8 is null.");
             }
         }
 
