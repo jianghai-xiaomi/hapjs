@@ -5,16 +5,19 @@ package org.hapjs.runtime.sandbox;
 
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.locks.ReentrantLock;
+
 import org.hapjs.render.jsruntime.SandboxProvider;
 import org.hapjs.runtime.ProviderManager;
 
 // A channel has two ends. One is for sending requests, the other is for receiving request and may send back response.
 public class SandboxChannel {
+    private static final String TAG = "SandboxChannel";
     private ParcelFileDescriptor.AutoCloseInputStream mInput;
     private ParcelFileDescriptor.AutoCloseOutputStream mOutput;
     private byte[] mBuffer = new byte[64 * 1024];
@@ -43,7 +46,10 @@ public class SandboxChannel {
             output.write(mBuffer, 0, len);
             lenLeft -= len;
         }
-        if (lenLeft != 0) {
+
+        if (len == -1) {
+            throw new IOException("stream closed.");
+        } else if (lenLeft != 0) {
             throw new IOException("want " + lenNeeded + ", but get " + (lenNeeded - lenLeft));
         }
     }
