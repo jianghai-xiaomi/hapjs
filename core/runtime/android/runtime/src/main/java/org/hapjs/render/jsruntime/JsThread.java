@@ -365,7 +365,7 @@ public abstract class JsThread extends HandlerThread {
     protected void notifyPageNotFound(Object msgObj) {
         Object[] args = (Object[]) msgObj;
         int appId = (int) args[0];
-        String pageUri = (String) args[0];
+        String pageUri = (String) args[1];
         mEngine.notifyPageNotFound(appId, pageUri);
     }
 
