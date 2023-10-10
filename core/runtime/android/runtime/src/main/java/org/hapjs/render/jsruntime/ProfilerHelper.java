@@ -5,7 +5,6 @@
 package org.hapjs.render.jsruntime;
 
 import android.util.Log;
-import com.eclipsesource.v8.V8Object;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +20,7 @@ import org.hapjs.runtime.ProviderManager;
 import org.hapjs.runtime.Runtime;
 import org.hapjs.system.SysOpProvider;
 
-public class ProfilerHelper extends V8Object {
+public class ProfilerHelper {
 
     private static final String TAG = "ProfilerHelper";
 

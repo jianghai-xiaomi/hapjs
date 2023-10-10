@@ -263,20 +263,10 @@ public class V8ObjectHelper {
             V8TypedArray v8TypedArray = toV8TypedArray(v8, typedArray, cache);
             result.add(key, v8TypedArray);
         } else if (value instanceof ByteBuffer) {
-            V8ArrayBuffer v8ArrayBuffer = null;
-            if (cache.containsKey(value)) {
-                v8ArrayBuffer = (V8ArrayBuffer) cache.get(value);
-            }
-            if (v8ArrayBuffer == null) {
-                v8ArrayBuffer = new V8ArrayBuffer(v8, (ByteBuffer) value);
-                cache.put(value, v8ArrayBuffer);
-            }
+            V8ArrayBuffer v8ArrayBuffer = toV8ArrayBuffer(v8, (ByteBuffer) value, cache);
             result.add(key, v8ArrayBuffer);
         } else if (value instanceof byte[]) {
-            ByteBuffer buff = ByteBuffer.allocateDirect(((byte[]) value).length);
-            buff.put((byte[]) value);
-            buff.rewind();
-            V8ArrayBuffer v8ArrayBuffer = new V8ArrayBuffer(v8, buff);
+            V8ArrayBuffer v8ArrayBuffer = toV8ArrayBuffer(v8, (byte[]) value, cache);
             result.add(key, v8ArrayBuffer);
         } else if (value instanceof Map) {
             V8Object object = toV8Object(v8, (Map) value, cache);
@@ -324,10 +314,7 @@ public class V8ObjectHelper {
             V8ArrayBuffer v8ArrayBuffer = toV8ArrayBuffer(v8, (ArrayBuffer) value, cache);
             result.push(v8ArrayBuffer);
         } else if (value instanceof byte[]) {
-            ByteBuffer buff = ByteBuffer.allocateDirect(((byte[]) value).length);
-            buff.put((byte[]) value);
-            buff.rewind();
-            V8ArrayBuffer v8ArrayBuffer = new V8ArrayBuffer(v8, buff);
+            V8ArrayBuffer v8ArrayBuffer = toV8ArrayBuffer(v8, (byte[]) value, cache);
             result.push(v8ArrayBuffer);
         } else if (value instanceof Map) {
             V8Object object = toV8Object(v8, (Map) value, cache);
@@ -367,6 +354,28 @@ public class V8ObjectHelper {
         }
         V8ArrayBuffer result = arrayBuffer.getV8ArrayBuffer();
         cache.put(arrayBuffer, result);
+        return result;
+    }
+
+    private static V8ArrayBuffer toV8ArrayBuffer(final V8 v8, final ByteBuffer byteBuffer, final Map<Object, V8Value> cache) {
+        if (cache.containsKey(byteBuffer)) {
+            return (V8ArrayBuffer) cache.get(byteBuffer);
+        }
+        V8ArrayBuffer result = new V8ArrayBuffer(v8, byteBuffer);
+        cache.put(byteBuffer, result);
+        return result;
+    }
+
+    private static V8ArrayBuffer toV8ArrayBuffer(final V8 v8, final byte[] array, final Map<Object, V8Value> cache) {
+        if (cache.containsKey(array)) {
+            return  (V8ArrayBuffer) cache.get(array);
+        }
+
+        ByteBuffer buff = ByteBuffer.allocateDirect(array.length);
+        buff.put(array);
+        buff.rewind();
+        V8ArrayBuffer result = new V8ArrayBuffer(v8, buff);
+        cache.put(array, result);
         return result;
     }
 
