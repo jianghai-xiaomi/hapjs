@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -15,6 +16,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import org.hapjs.common.executors.Executors;
 import org.hapjs.common.utils.ProcessUtils;
 import org.hapjs.logging.LogProvider;
@@ -42,6 +44,10 @@ public class SandboxProcessLauncher {
     private SandboxProcessLauncher() {
     }
 
+    public void preStartSandboxProcess(String launcherId) {
+        Executors.io().execute(() -> startService(launcherId));
+    }
+
     public void preBindSandboxProcess() {
         Executors.io().execute(() -> ensureBind());
     }
@@ -63,6 +69,14 @@ public class SandboxProcessLauncher {
         bindService();
     }
 
+    private void startService(String launcherId) {
+        String sandboxName = "org.hapjs.runtime.sandbox.SandboxService$Sandbox" + launcherId;
+        Context context = Runtime.getInstance().getContext();
+        Intent intent = new Intent();
+        intent.setClassName(context.getPackageName(), sandboxName);
+        context.startService(intent);
+    }
+
     private void bindService() {
         CountDownLatch bindingLatch = new CountDownLatch(1);
 
@@ -74,35 +88,13 @@ public class SandboxProcessLauncher {
         Intent intent = new Intent();
         intent.setClassName(context.getPackageName(), sandboxName);
 
-        context.bindService(intent, new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                ISandbox iSandbox = ISandbox.Stub.asInterface(service);
-                mSandbox = iSandbox;
-                try {
-                    SandboxProvider sandboxProvider = ProviderManager.getDefault().getProvider(SandboxProvider.NAME);
-                    iSandbox.init(new SandboxConfigs.Builder()
-                            .setDebugLogEnabled(sandboxProvider != null && sandboxProvider.isDebugLogEnabled())
-                            .setProfilerEnabled(ProfilerHelper.profilerIsEnabled())
-                            .build());
-                    iSandbox.setLogProvider(new SandboxLogProvider());
-                    iSandbox.asBinder().linkToDeath(() -> {
-                        Log.e(TAG, "sandbox process has died. kill app process as well.");
-                        Process.killProcess(Process.myPid());
-                    }, 0);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "failed to setLogProvider or linkToDeath", e);
-                }
-
-                ensureChannel(iSandbox);
-
-                bindingLatch.countDown();
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-            }
-        }, Context.BIND_AUTO_CREATE);
+        ServiceConnection connection = new SandboxServiceConnection(bindingLatch);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Executor executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+            context.bindService(intent, Context.BIND_AUTO_CREATE, executor, connection);
+        } else {
+            context.bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        }
 
         try {
             bindingLatch.await();
@@ -130,6 +122,40 @@ public class SandboxProcessLauncher {
             };
         } catch (RemoteException | IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private class SandboxServiceConnection implements ServiceConnection {
+        private CountDownLatch mBindingLatch;
+
+        SandboxServiceConnection(CountDownLatch bindingLatch) {
+            mBindingLatch = bindingLatch;
+        }
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            ISandbox iSandbox = ISandbox.Stub.asInterface(service);
+            mSandbox = iSandbox;
+            try {
+                SandboxProvider sandboxProvider = ProviderManager.getDefault().getProvider(SandboxProvider.NAME);
+                iSandbox.init(new SandboxConfigs.Builder()
+                        .setDebugLogEnabled(sandboxProvider != null && sandboxProvider.isDebugLogEnabled())
+                        .setProfilerEnabled(ProfilerHelper.profilerIsEnabled())
+                        .build());
+                iSandbox.setLogProvider(new SandboxLogProvider());
+                iSandbox.asBinder().linkToDeath(() -> {
+                    Log.e(TAG, "sandbox process has died. kill app process as well.");
+                    Process.killProcess(Process.myPid());
+                }, 0);
+            } catch (RemoteException e) {
+                Log.e(TAG, "failed to init or setStatProvider or linkToDeath", e);
+            }
+            ensureChannel(iSandbox);
+            mBindingLatch.countDown();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
         }
     }
 
