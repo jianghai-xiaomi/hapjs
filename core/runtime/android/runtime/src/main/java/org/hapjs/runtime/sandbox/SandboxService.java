@@ -14,13 +14,20 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import org.hapjs.analyzer.model.LogData;
+import org.hapjs.analyzer.monitors.AbsLogDumper;
+import org.hapjs.common.executors.Executors;
 import org.hapjs.logging.LogProvider;
 import org.hapjs.render.jsruntime.SandboxJsThread;
 import org.hapjs.runtime.ProviderManager;
 
 public class SandboxService extends Service {
     private static final String TAG = "SandboxService";
+
+    private ILogListener mLogListener;
+    private Dumper mDumper;
 
     @Nullable
     @Override
@@ -64,6 +71,22 @@ public class SandboxService extends Service {
                     Log.e(TAG, "failed to linkToDeath", e);
                 }
             }
+
+            @Override
+            public void setLogListener(ILogListener listener) {
+                mLogListener = listener;
+                if (listener != null) {
+                    if (mDumper == null) {
+                        mDumper = new Dumper();
+                        Executors.io().execute(mDumper);
+                    }
+                } else {
+                    if (mDumper != null) {
+                        mDumper.close();
+                        mDumper = null;
+                    }
+                }
+            }
         };
     }
 
@@ -74,6 +97,13 @@ public class SandboxService extends Service {
         if (logProvider instanceof SandboxLogProviderImpl) {
             ((SandboxLogProviderImpl) logProvider).setLogProvider(null);
         }
+
+        mLogListener = null;
+        Dumper dumper = mDumper;
+        mDumper = null;
+        if (dumper != null) {
+            dumper.close();
+        }
     }
 
     public static class Sandbox0 extends SandboxService {}
@@ -81,4 +111,18 @@ public class SandboxService extends Service {
     public static class Sandbox2 extends SandboxService {}
     public static class Sandbox3 extends SandboxService {}
     public static class Sandbox4 extends SandboxService {}
+
+    private class Dumper extends AbsLogDumper {
+        @Override
+        protected void doDumpLog(List<LogData> logs) {
+            ILogListener logListener = mLogListener;
+            if (logListener != null) {
+                try {
+                    logListener.onLog(logs);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "failed to onLog", e);
+                }
+            }
+        }
+    }
 }
